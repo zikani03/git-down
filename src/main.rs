@@ -2,6 +2,7 @@
 // Author: zikani03
 use std::fs;
 use std::process::Command;
+use std::path::{Path, PathBuf};
 
 const DOT_GIT: &'static str = ".git";
 
@@ -39,7 +40,6 @@ fn main() {
     let git_dir = parse_url(&git_url_dir);
 
     let dirs = git_dir.dirs();
-    let first = dirs.get(0).unwrap();
 
     let dest_dir = arg_dest.unwrap();
     let tmp_dir = format!("/tmp/git-down/{}", git_dir.name());
@@ -56,14 +56,26 @@ fn main() {
     let exit_code = git_command.wait().expect("Failed to download directory/files from repository");
 
     if exit_code.success() {
-        Command::new("mv")
-            .arg(format!("{0}/{1}", tmp_dir.clone(), first))
-            .arg(dest_dir)
-            .output()
-            .expect(&format!("Failed to copy files to directory. Find the files here: {}.",
-                             tmp_dir));
-        // Won't work if files on on differen file systems, so suck that
-        // fs::rename(tmp_dir.clone(), dest_dir);
+
+        let dest_path = PathBuf::from(dest_dir.clone());
+
+        if !dest_path.exists() {
+            match fs::create_dir(dest_dir) {
+                Ok(_) => (),
+                Err(e) => {
+                    panic!("Cannot create destination directory {}", e);
+                }
+            }
+        }
+
+        let mut source_path: PathBuf = PathBuf::from(tmp_dir.clone());
+
+        for d in dirs.iter() {
+            source_path.push(d.clone());
+            move_directory(source_path.as_path(), dest_path.as_path());
+            source_path.pop();
+        }
+
     } else {
         panic!("Failed to download directory from repository");
     }
@@ -108,4 +120,24 @@ fn parse_url<'a>(url_composite: &str) -> GitDir {
         repo_name: &name,
         dirs: dirs,
     }
+}
+
+#[cfg(windows)]
+fn move_directory(source: &Path , dest: &Path) {
+    Command::new("move")
+        .arg(source.to_str().unwrap())
+        .arg(dest.to_str().unwrap())
+        .output()
+        .expect(&format!("Failed to copy files to directory. Find the files here: {}.",
+                         source.display()));
+}
+
+#[cfg(not(windows))]
+fn move_directory(source: &Path , dest: &Path) {
+    Command::new("mv")
+        .arg(source.to_str().unwrap())
+        .arg(dest.to_str().unwrap())
+        .output()
+        .expect(&format!("Failed to copy files to directory. Find the files here: {}.",
+                         source.display()));
 }
