@@ -29,6 +29,11 @@ And then there is the `git-down` way!
 
 `git-down` works exactly like the shallow-clone and move but does it all in one command. **One command!**
 
+> NOTE: This is still a work in progress. Basic download/cloning works right now if you use the 
+> `git-down url.git/directory dest-directory` approach (and have `/tmp/git-down` directory) plus I've only tried it with GitHub so far.
+> So, you can send pull-requests if you want to.
+> I just have a bad (good?) habit of writing the docs before finishing the thing ;P
+
 ## Usage
 
 This command will create a `bootstrap-dist` directory in the current working directory
