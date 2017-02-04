@@ -42,7 +42,7 @@ fn main() {
     let dirs = git_dir.dirs();
 
     let dest_dir = arg_dest.unwrap();
-    let tmp_dir = format!("/tmp/git-down/{}", git_dir.name());
+    let tmp_dir = create_tmp_name(git_dir.name());
 
     let mut git_command = Command::new("git")
         .arg("clone")
@@ -76,6 +76,12 @@ fn main() {
             source_path.pop();
         }
 
+        match fs::remove_dir_all(tmp_dir.clone()) {
+            Ok(_) => (),
+            Err(_) => {
+                panic!("Failed to remove tmp directory, you can remove it from here: {}", tmp_dir);
+            }
+        };
     } else {
         panic!("Failed to download directory from repository");
     }
@@ -91,7 +97,7 @@ fn parse_url<'a>(url_composite: &str) -> GitDir {
     match url_composite.rfind(DOT_GIT) {
         Some(n) => {
             pos = n;
-        }
+        },
         None => {
             panic!("Url must contain a .git extension after the repo name");
         }
@@ -120,6 +126,29 @@ fn parse_url<'a>(url_composite: &str) -> GitDir {
         repo_name: &name,
         dirs: dirs,
     }
+}
+
+#[cfg(windows)]
+fn create_tmp_name(dir_name: &str) -> String {
+    match env::var("TMP") {
+        Ok(val) => {
+            let mut p: PathBuf = PathBuf::from(val);
+            p.push(dir_name);
+            return p.as_path().to_str().unwrap()
+        },
+        Err(err) => {
+            // If the %TMP% is not defined on windows for some reason, use the /tmp
+            // which Windows _should_ translate to something like `c:\tmp\git-down`
+            let tmp_dir = format!("/tmp/git-down/{}", dir_name);
+            tmp_dir
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn create_tmp_name(dir_name: &str) -> String {
+    let tmp_dir = format!("/tmp/git-down/{}", dir_name);
+    tmp_dir
 }
 
 #[cfg(windows)]
