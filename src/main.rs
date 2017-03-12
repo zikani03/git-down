@@ -130,11 +130,11 @@ fn parse_url<'a>(url_composite: &str) -> GitDir {
 
 #[cfg(windows)]
 fn create_tmp_name(dir_name: &str) -> String {
-    match env::var("TMP") {
+    match std::env::var("TMP") {
         Ok(val) => {
             let mut p: PathBuf = PathBuf::from(val);
             p.push(dir_name);
-            return p.as_path().to_str().unwrap()
+            return String::from(p.as_path().to_str().unwrap())
         },
         Err(err) => {
             // If the %TMP% is not defined on windows for some reason, use the /tmp
