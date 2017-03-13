@@ -4,28 +4,29 @@ use std::fs;
 use std::process::Command;
 use std::path::{Path, PathBuf};
 
+const COLON: &'static str = ":";
 const DOT_GIT: &'static str = ".git";
 
-#[derive(Debug)]
-struct GitDir<'a> {
-    repo_url: &'a str,
-    repo_name: &'a str,
-    dirs: Vec<&'a str>,
+#[derive(Debug, Clone)]
+struct GitDir {
+    repo_url: String,
+    repo_name: String,
+    dirs: Vec<String>,
 }
 
-impl<'a> GitDir<'a> {
+impl GitDir {
     /// Url of the Git repository
     fn url(&self) -> &str {
-        self.repo_url
+        self.repo_url.as_str()
     }
 
     /// Name of the Git repository
     fn name(&self) -> &str {
-        self.repo_name
+        self.repo_name.as_str()
     }
 
     /// Directories to download from the Git repository
-    fn dirs(&self) -> Vec<&str> {
+    fn dirs(&self) -> Vec<String> {
         self.dirs.clone()
     }
 }
@@ -37,62 +38,111 @@ fn main() {
 
     let git_url_dir = arg.unwrap();
 
-    let git_dir = parse_url(&git_url_dir);
-
-    let dirs = git_dir.dirs();
+    let git_dir = parse_source(&git_url_dir);
 
     let dest_dir = arg_dest.unwrap();
     let tmp_dir = create_tmp_name(git_dir.name());
 
-    let mut git_command = Command::new("git")
+    if !download_repo(&git_dir, tmp_dir.as_str()) {
+        panic!("Failed to download repository");
+    }
+
+    let dest_path = PathBuf::from(dest_dir.clone());
+
+    if !dest_path.exists() {
+        match fs::create_dir(dest_dir) {
+            Ok(_) => (),
+            Err(e) => {
+                panic!("Cannot create destination directory {}", e);
+            }
+        }
+    }
+
+    let mut source_path: PathBuf = PathBuf::from(tmp_dir.clone());
+    
+    let dirs = git_dir.dirs();
+
+    for d in dirs.iter() {
+        source_path.push(d.clone());
+        move_directory(source_path.as_path(), dest_path.as_path());
+        source_path.pop();
+    }
+
+    // remove the temporary directory
+    match fs::remove_dir_all(tmp_dir.clone()) {
+        Ok(_) => (),
+        Err(_) => {
+            panic!("Failed to remove tmp directory, you can remove it from here: {}", tmp_dir);
+        }
+    };
+}
+
+fn download_repo(git_dir: &GitDir, tmp_dir: &str) -> bool {
+   let mut git_command = Command::new("git")
         .arg("clone")
         .arg("--depth")
         .arg("1")
         .arg(git_dir.url())
-        .arg(tmp_dir.clone())
+        .arg(tmp_dir)
         .spawn()
         .expect("Failed to download directory/files from repository");
 
-    let exit_code = git_command.wait().expect("Failed to download directory/files from repository");
+    let exit_code = git_command.wait()
+                        .expect("Failed to download directory/files from repository");
 
     if exit_code.success() {
-
-        let dest_path = PathBuf::from(dest_dir.clone());
-
-        if !dest_path.exists() {
-            match fs::create_dir(dest_dir) {
-                Ok(_) => (),
-                Err(e) => {
-                    panic!("Cannot create destination directory {}", e);
-                }
-            }
-        }
-
-        let mut source_path: PathBuf = PathBuf::from(tmp_dir.clone());
-
-        for d in dirs.iter() {
-            source_path.push(d.clone());
-            move_directory(source_path.as_path(), dest_path.as_path());
-            source_path.pop();
-        }
-
-        match fs::remove_dir_all(tmp_dir.clone()) {
-            Ok(_) => (),
-            Err(_) => {
-                panic!("Failed to remove tmp directory, you can remove it from here: {}", tmp_dir);
-            }
-        };
+        true
     } else {
-        panic!("Failed to download directory from repository");
-    }
+        false
+    } 
 }
 
+fn parse_source(source_uri: &str) -> GitDir {
+    // check if we are dealing with a shortcut source first, e.g. gh:
+    let mut colon_pos = 0;
+    match source_uri.rfind(COLON) {
+        Some(n) => {
+            colon_pos = n;
+        },
+        None => (),
+    };
 
-fn parse_url<'a>(url_composite: &str) -> GitDir {
-    let len = url_composite.len();
+    if colon_pos > 0 {
+        return from_shortcut_url(source_uri);
+    }
+
+    from_url(source_uri)
+}
+
+/// Create a GitDir from a shortcut url string
+/// a shortcut string looks like gh:user/repo:directory
+fn from_shortcut_url<'a>(shortcut_composite: &str) -> GitDir {
+    let parts: Vec<&str> = shortcut_composite.split(COLON).collect();
+
+    let num_parts: usize = parts.len(); 
+    if num_parts != 3 {
+        panic!("Invalid shortcut string");
+    }
+    let service = parts[0];
+    let repo = parts[1];
+
+    let full_url = service_url(service, repo);
+    let url_opt = full_url.clone();
+    let url = url_opt.unwrap();
+    
+    let git_dir = GitDir {
+        repo_name: parts[1].to_string(),
+        repo_url: url,
+        dirs: parse_dirs(parts[2])
+    };
+    git_dir
+}
+
+/// Create a GitDir from a full url string
+fn from_url<'a>(url_composite: &str) -> GitDir {
     let len_git = DOT_GIT.len();
 
-    let mut pos = len;
+    let mut pos = 0;
 
     match url_composite.rfind(DOT_GIT) {
         Some(n) => {
@@ -119,13 +169,18 @@ fn parse_url<'a>(url_composite: &str) -> GitDir {
     let (name, _) = name_dot_git.split_at(name_dot_git.len() - len_git);
     let (_, dir_part) = url_composite.split_at(url_len);
 
-    let dirs: Vec<_> = dir_part.split("+").collect();
-
     GitDir {
-        repo_url: url,
-        repo_name: &name,
-        dirs: dirs,
+        repo_url: String::from(url),
+        repo_name: String::from(name),
+        dirs: parse_dirs(dir_part),
     }
+}
+
+fn parse_dirs(dir_spec: &str) -> Vec<String> {
+    let dirs: Vec<_> = dir_spec.split("+")
+        .map(|s| s.to_string())
+        .collect();
+    dirs
 }
 
 #[cfg(windows)]
@@ -169,4 +224,38 @@ fn move_directory(source: &Path , dest: &Path) {
         .output()
         .expect(&format!("Failed to copy files to directory. Find the files here: {}.",
                          source.display()));
+}
+
+fn service_url<'a>(service: &'a str, repo: &'a str) -> Option<String> {
+    match service {
+        "gh" => Some(github_url(repo)),
+        "bb" => Some(bitbucket_url(repo)),
+        "gl" => Some(gitlab_url(repo)),
+        "sf" => Some(sourceforge_url(repo)),
+        _ => None,
+    }
+}
+
+
+fn github_url(repo: &str) -> String {
+    let mut url = String::from("https://github.com/");
+    url.push_str(repo.clone());
+    url
+}
+
+fn bitbucket_url(repo: &str) -> String {
+    let mut url = String::from("https://bitbucket.org/");
+    url.push_str(repo);
+    url
+}
+
+fn gitlab_url(repo: &str) -> String {
+    let mut url = String::from("https://gitlab.com/");
+    url.push_str(repo);
+    url
+}
+fn sourceforge_url(repo: &str) -> String {
+    let mut url = String::from("https://git.code.sf.net/p/");
+    url.push_str(repo);
+    url
 }

@@ -33,6 +33,55 @@ use the following command.
 $ git-down https://github.com/twbs/bootstrap.git/dist+src bootstrap-stuff 
 ```
 
+### Shortcuts
+
+Shortcuts are intended to reduce keystrokes by allowing you to download from popular Git hosting
+services without typing out the full URL of the repository.
+
+When using shortcuts the parts of the _source_ are separated using colons (:).
+
+The following are working examples you can use for downloading a directory from 
+supported services:
+
+**GitHub**
+
+The following example command will download the dist directory from bootstrap repo
+into boostrap-latest from the GitHub repository.
+
+```sh
+$ git-down gh:tbws/bootstrap:dist bootstrap-latest
+```
+
+Get only the css directory 
+
+```sh
+$ git-down gh:tbws/bootstrap:dist/css bootstrap-css
+```
+
+Get the css and img directories
+
+```sh
+$ git-down gh:tbws/bootstrap:dist/css+dist/img bootstrap-css-img
+```
+
+**BitBucket**
+
+```sh
+$ git-down bb:zzzeek/sqlalchemy:examples sqlalchemy-examples
+```
+
+**GitLab**
+
+```sh
+$ git-down gl:gitlab-org/gitlab-ce:scripts gitlab-scripts
+```
+
+**SourceForge**
+
+```sh
+$ git-down sf:nagios/nagios-core:sample-config nagioscore-sample-config
+```
+
 ## Why do I need this in my life?
 
 It will save you time. Currently all of the ways to get just one directory from a repository 
@@ -81,76 +130,21 @@ Assuming your `~/bin` is on your PATH you can now use it from the shell as `git-
 
 ## Planned Features
 
+### Download without cloning
+
+The current implementation performs a shallow clone to download the repository, however,
+this is inefficient especially for large repos since you end up downloading more 
+data than you need (e.g. the gitlab example above for the scripts directory downloads 
+over 17MB when we actually need under an MB) - so moving forward, 
+I'd like to figure out how to get just the files we need from the remote repository. 
+
 ### From a different commit, tag, revision
 
-```sh
-$ git-down -f v3.3.2 https://github.com/twbs/bootstrap.git/dist bootstrap-3.3.2
-```
-
-### Shortcuts
-
-**GitHub**
+This would be nice, me thinks :)
 
 ```sh
-$ git-down --github twbs/bootstrap --dir dist -o bootstrap-latest
-# or
-$ git-down gh:tbws/bootstrap dist bootstrap-latest
+$ git-down -f v3.3.2 gh:twbs/bootstrap:dist bootstrap-3.3.2
 ```
-
-Get only the css directory 
-
-```sh
-$ git-down gh:tbws/bootstrap dist/css bootstrap-css
-```
-
-Get the css and img directories
-
-```sh
-$ git-down gh:tbws/bootstrap dist/css+img bootstrap-css-img
-```
-
-**BitBucket**
-
-```sh
-$ git-down --bitbucket twbs/bootstrap --dir dist -o bootstrap-latest
-# or
-$ git-down bb:tbws/bootstrap.git/dist bootstrap-latest
-```
-
-**GitLab**
-
-```sh
-$ git-down --gitlab twbs/bootstrap --dir dist -o bootstrap-latest
-# or
-$ git-down gl:tbws/bootstrap.git/dist bootstrap-latest
-```
-
-**SourceForge**
-
-```sh
-$ git-down --sourceforge twbs/bootstrap --dir dist -o bootstrap-latest
-# or
-$ git-down sf:tbws/bootstrap.git/dist bootstrap-latest
-```
-
-**SSH**
-
-This would ofcourse assumes you have an ssh-agent running, with your git repo setup with 
-an ssh key and all that stuff.
-
-```sh
-$ git-down --ssh twbs/bootstrap --dir dist -o bootstrap-latest
-# or
-$ git-down ssh:tbws/bootstrap.git/dist bootstrap-latest
-```
-
-## _Should_ work with
-
-* GitHub
-* BitBucket
-* GitLab
-* SourceForge
-* Any where you can clone a Git repo from :D
 
 Now, git down to business!
 
