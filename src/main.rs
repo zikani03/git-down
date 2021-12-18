@@ -1,5 +1,8 @@
 // git-down
 // Author: zikani03
+//
+extern crate fs_extra;
+
 use std::fs;
 use std::process::Command;
 use std::path::{Path, PathBuf};
@@ -69,12 +72,8 @@ fn main() {
     }
 
     // remove the temporary directory
-    match fs::remove_dir_all(tmp_dir.clone()) {
-        Ok(_) => (),
-        Err(_) => {
-            panic!("Failed to remove tmp directory, you can remove it from here: {}", tmp_dir);
-        }
-    };
+    fs::remove_dir_all(tmp_dir.clone())
+        .expect(format!("Failed to remove tmp directory, you can remove it from here: {}", tmp_dir).as_str());
 }
 
 fn download_repo(git_dir: &GitDir, tmp_dir: &str) -> bool {
@@ -87,14 +86,9 @@ fn download_repo(git_dir: &GitDir, tmp_dir: &str) -> bool {
         .spawn()
         .expect("Failed to download directory/files from repository");
 
-    let exit_code = git_command.wait()
-                        .expect("Failed to download directory/files from repository");
-
-    if exit_code.success() {
-        true
-    } else {
-        false
-    } 
+    return git_command.wait()
+                      .expect("Failed to download directory/files from repository")
+                      .success();
 }
 
 fn parse_source(source_uri: &str) -> GitDir {
@@ -180,9 +174,13 @@ fn create_tmp_name(dir_name: &str) -> String {
     return String::from(path.as_path().to_str().unwrap())
 }
 
-fn move_directory(source: &Path , dest: &Path) {
-    std::fs::rename(source, dest)
-        .expect(&format!("Failed to copy files to directory. Find the files here: {}.", source.display()))
+fn move_directory(source_path: &Path , dest_path: &Path) {
+    let options = fs_extra::dir::CopyOptions::new();
+    let source = source_path.to_str().unwrap().to_string();
+    let dest = dest_path.to_str().unwrap().to_string();
+
+    fs_extra::dir::move_dir(source, dest, &options)
+        .expect(&format!("Failed to copy files to directory. Find the files here: {}.", source_path.display()));
 }
 
 fn service_url<'a>(service: &'a str, repo: &'a str) -> Option<String> {

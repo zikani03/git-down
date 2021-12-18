@@ -4,3 +4,4 @@ version = "0.2.0-beta"
 authors = ["Zikani Nyirenda Mwase <zikani.nmwase@ymail.com>"]
 
 [dependencies]
+fs_extra = "1.2.0"
