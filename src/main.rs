@@ -142,16 +142,8 @@ fn from_shortcut_url<'a>(shortcut_composite: &str) -> GitDir {
 fn from_url<'a>(url_composite: &str) -> GitDir {
     let len_git = DOT_GIT.len();
 
-    let mut pos = 0;
-
-    match url_composite.rfind(DOT_GIT) {
-        Some(n) => {
-            pos = n;
-        },
-        None => {
-            panic!("Url must contain a .git extension after the repo name");
-        }
-    }
+    let pos = url_composite.rfind(DOT_GIT)
+                           .expect("Url must contain a .git extension after the repo name");
 
     let pos_git = pos + len_git;
 
