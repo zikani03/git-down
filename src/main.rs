@@ -175,47 +175,14 @@ fn parse_dirs(dir_spec: &str) -> Vec<String> {
     dirs
 }
 
-#[cfg(windows)]
 fn create_tmp_name(dir_name: &str) -> String {
-    match std::env::var("TMP") {
-        Ok(val) => {
-            let mut p: PathBuf = PathBuf::from(val);
-            p.push(dir_name);
-            return String::from(p.as_path().to_str().unwrap())
-        },
-        Err(err) => {
-            // If the %TMP% is not defined on windows for some reason, use the /tmp
-            // which Windows _should_ translate to something like `c:\tmp\git-down`
-            let tmp_dir = format!("/tmp/git-down/{}", dir_name);
-            tmp_dir
-        }
-    }
+    let path = std::env::temp_dir().join(dir_name);
+    return String::from(path.as_path().to_str().unwrap())
 }
 
-#[cfg(not(windows))]
-fn create_tmp_name(dir_name: &str) -> String {
-    let tmp_dir = format!("/tmp/git-down/{}", dir_name);
-    tmp_dir
-}
-
-#[cfg(windows)]
 fn move_directory(source: &Path , dest: &Path) {
-    Command::new("move")
-        .arg(source.to_str().unwrap())
-        .arg(dest.to_str().unwrap())
-        .output()
-        .expect(&format!("Failed to copy files to directory. Find the files here: {}.",
-                         source.display()));
-}
-
-#[cfg(not(windows))]
-fn move_directory(source: &Path , dest: &Path) {
-    Command::new("mv")
-        .arg(source.to_str().unwrap())
-        .arg(dest.to_str().unwrap())
-        .output()
-        .expect(&format!("Failed to copy files to directory. Find the files here: {}.",
-                         source.display()));
+    std::fs::rename(source, dest)
+        .expect(&format!("Failed to copy files to directory. Find the files here: {}.", source.display()))
 }
 
 fn service_url<'a>(service: &'a str, repo: &'a str) -> Option<String> {
