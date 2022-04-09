@@ -9,8 +9,11 @@ hassle of cloning or downloading the whole repository, with one simple command.
 It's really easy to use.
 
 ```sh
-$ git-down <REPO_URL.git/DIRECTORIES> <DESTINATION_DIRECTORY>
+$ git-down -d <DESTINATION_DIRECTORY> <REPO_URL.git:branch> FILES
 ```
+
+The `-d <DESTINATION_DIRECTORY>` option above is optional. If not specified the files
+will be downloaded into a directory under the name of the target repository.
 
 > We're using the bootstrap repo as an example for how to use the command but it works with 
 any repository.
@@ -19,8 +22,11 @@ For example, running the following command will create a `bootstrap-dist` direct
 working directory containing bootstrap's `dist` directory.
 
 ```sh
-$ git-down https://github.com/twbs/bootstrap.git/dist boostrap-dist
+$ git-down -d bootstrap-dist https://github.com/twbs/bootstrap.git:master dist
 ```
+
+If bootstrap-dist above is not specified, a directory named bootstrap will be created
+instead.
 
 ### Download multiple directories
 
@@ -30,7 +36,7 @@ For example if you wanted to download both the dist and src directories from the
 use the following command.
 
 ```sh
-$ git-down https://github.com/twbs/bootstrap.git/dist+src bootstrap-stuff 
+$ git-down https://github.com/twbs/bootstrap.git:master dist src 
 ```
 
 ### Shortcuts
@@ -49,37 +55,37 @@ The following example command will download the dist directory from bootstrap re
 into boostrap-latest from the GitHub repository.
 
 ```sh
-$ git-down gh:tbws/bootstrap:dist bootstrap-latest
+$ git-down -d bootstrap-latest gh:tbws/bootstrap:master dist
 ```
 
 Get only the css directory 
 
 ```sh
-$ git-down gh:tbws/bootstrap:dist/css bootstrap-css
+$ git-down -d bootstrap-css gh:tbws/bootstrap:master dist/css
 ```
 
 Get the css and img directories
 
 ```sh
-$ git-down gh:tbws/bootstrap:dist/css+dist/img bootstrap-css-img
+$ git-down -d boostrap-css-img gh:tbws/bootstrap:master dist/css dist/img
 ```
 
 **BitBucket**
 
 ```sh
-$ git-down bb:zzzeek/sqlalchemy:examples sqlalchemy-examples
+$ git-down -d sqlalchemy-examples bb:zzzeek/sqlalchemy:master examples 
 ```
 
 **GitLab**
 
 ```sh
-$ git-down gl:gitlab-org/gitlab-ce:scripts gitlab-scripts
+$ git-down -d gitlab-scripts gl:gitlab-org/gitlab-ce:master scripts 
 ```
 
 **SourceForge**
 
 ```sh
-$ git-down sf:nagios/nagios-core:sample-config nagioscore-sample-config
+$ git-down -d nagioscore-sample-config sf:nagios/nagios-core:master sample-config 
 ```
 
 ## Why do I need this in my life?
@@ -129,14 +135,6 @@ $ mv target/release/git-down ~/bin/git-down
 Assuming your `~/bin` is on your PATH you can now use it from the shell as `git-down`
 
 ## Planned Features
-
-### Download without cloning
-
-The current implementation performs a shallow clone to download the repository, however,
-this is inefficient especially for large repos since you end up downloading more 
-data than you need (e.g. the gitlab example above for the scripts directory downloads 
-over 17MB when we actually need under an MB) - so moving forward, 
-I'd like to figure out how to get just the files we need from the remote repository. 
 
 ### From a different commit, tag, revision
 
