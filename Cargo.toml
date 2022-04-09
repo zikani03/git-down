@@ -1,6 +1,11 @@
 [package]
 name = "git-down"
-version = "0.2.0-beta"
+version = "0.3.0-beta"
 authors = ["Zikani Nyirenda Mwase <zikani.nmwase@ymail.com>"]
 
 [dependencies]
+clap = "3.1.8"
+fs_extra = "1.2.0"
+regex = "1"
+tempfile = "3"
+
