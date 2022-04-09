@@ -5,5 +5,6 @@ authors = ["Zikani Nyirenda Mwase <zikani.nmwase@ymail.com>"]
 
 [dependencies]
 fs_extra = "1.2.0"
+regex = "1"
 tempfile = "3"
 
