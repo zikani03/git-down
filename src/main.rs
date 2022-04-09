@@ -58,8 +58,8 @@ fn from_shortcut_url<'a>(shortcut_composite: &str) -> (String, String, Vec<Strin
     let parts: Vec<&str> = shortcut_composite.split(COLON).collect();
 
     let num_parts: usize = parts.len(); 
-    if num_parts != 3 {
-        panic!("Invalid shortcut string");
+    if num_parts != 4 {
+        panic!("Invalid shortcut string (e.g. gh:zikani03/git-down:src:master)");
     }
     let service = parts[0];
     let repo = parts[1];
@@ -68,7 +68,7 @@ fn from_shortcut_url<'a>(shortcut_composite: &str) -> (String, String, Vec<Strin
     let url_opt = full_url.clone();
     let url = url_opt.unwrap();
     
-    (url, String::from("master"), parse_dirs(parts[2]))
+    (url, String::from(parts[3]), parse_dirs(parts[2]))
 }
 
 /// Create a GitDir from a full url string
@@ -80,7 +80,7 @@ fn from_url<'a>(url_composite: &str) -> (String, String, Vec<String>) {
 
     let pos_git = pos + len_git;
 
-    let (url, _) = url_composite.split_at(pos_git);
+    let (url, branch_part) = url_composite.split_at(pos_git);
 
     let url_len = url.len() + 1;
 
@@ -88,7 +88,13 @@ fn from_url<'a>(url_composite: &str) -> (String, String, Vec<String>) {
     // trying to get that shit to work, so this is not as elegant as it could be
     let (_, dir_part) = url_composite.split_at(url_len);
 
-    (String::from(url), String::from("master"), parse_dirs(dir_part))
+    if !branch_part.starts_with(":") {
+        panic!("Url must contain branch (e.g. https://github.com/zikani03/git-down.git:master)")
+    }
+
+    let (_, branch) = branch_part.split_at(1);
+
+    (String::from(url), String::from(branch), parse_dirs(dir_part))
 }
 
 fn parse_dirs(dir_spec: &str) -> Vec<String> {
