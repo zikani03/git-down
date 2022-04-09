@@ -15,8 +15,7 @@ impl Display for GitDownError {
 impl From<io::Error> for GitDownError {
     fn from(error: io::Error) -> Self {
         GitDownError {
-            message: error.to_string()
+            message: error.to_string(),
         }
     }
 }
-
