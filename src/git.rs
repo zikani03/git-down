@@ -26,9 +26,9 @@ impl GitDir {
 
     pub fn contents(&self) -> Vec<PathBuf> {
         let mut paths: Vec<PathBuf> = Vec::new();
+        let path = self.local_dir.path();
 
         for filename in &self.target_files {
-            let path = self.local_dir.path();
             let path_buf = path.join(filename);
 
             paths.push(path_buf);
@@ -57,7 +57,18 @@ pub fn sparse_checkout(
         local_dir: tempfile::tempdir()?,
     });
 
-    git_init(&dir)?;
+    println!("Cloning {}:{}", dir.remote_url.url, dir.remote_url.branch);
+    exec_git(&dir, &["init"])?;
+    exec_git(&dir, &["config", "core.sparsecheckout", "true"])?;
+
+    let mut checkout_args = Vec::from(["sparse-checkout", "set"]);
+    for path in &dir.target_files {
+        checkout_args.push(path);
+    }
+
+    exec_git(&dir, &checkout_args)?;
+    exec_git(&dir, &["remote", "add", "origin", &dir.remote_url.url],)?;
+    exec_git(&dir, &["pull", "origin", &dir.remote_url.branch])?;
 
     return Ok(dir);
 }
@@ -70,29 +81,6 @@ fn exec_git(git_dir: &GitDir, git_command: &[&str]) -> Result<(), GitDownError> 
         .args(git_command)
         .spawn()?;
     child.wait()?;
-
-    Ok(())
-}
-
-fn git_init(git_dir: &GitDir) -> Result<(), GitDownError> {
-    println!(
-        "Cloning {}:{}",
-        git_dir.remote_url.url, git_dir.remote_url.branch
-    );
-    exec_git(git_dir, &["init"])?;
-    exec_git(git_dir, &["config", "core.sparsecheckout", "true"])?;
-
-    let mut checkout_args = Vec::from(["sparse-checkout", "set"]);
-    for path in &git_dir.target_files {
-        checkout_args.push(path);
-    }
-
-    exec_git(git_dir, &checkout_args)?;
-    exec_git(
-        git_dir,
-        &["remote", "add", "origin", &git_dir.remote_url.url],
-    )?;
-    exec_git(git_dir, &["pull", "origin", &git_dir.remote_url.branch])?;
 
     Ok(())
 }
