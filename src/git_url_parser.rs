@@ -18,7 +18,7 @@ pub fn parse_url(url: &str) -> Result<GitUrl, GitDownError> {
 }
 
 pub fn is_shortcut_url(url: &str) -> bool {
-    let regex = Regex::new(r"^\w+:.*$").unwrap();
+    let regex = Regex::new(r"^\w+:\w+*$").unwrap();
 
     regex.is_match(url)
 }
@@ -79,7 +79,7 @@ fn read_url_part(captures: &Captures, name: &str) -> Result<String, GitDownError
 }
 
 fn parse_http_url(url: &str) -> Result<GitUrl, GitDownError> {
-    let regex = Regex::new(r"^.*/(?P<url>(?P<name>[^.:/]+)(\.git))?/?:(?P<branch>[^.]+)$").unwrap();
+    let regex = Regex::new(r"^(?P<url>.*/(?P<name>[^.:/]+)(\.git)?)/?:(?P<branch>[^.]+)$").unwrap();
     let captures = match regex.captures(url) {
         Some(value) => value,
         None => {
