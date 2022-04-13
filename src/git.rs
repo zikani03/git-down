@@ -57,9 +57,9 @@ pub fn sparse_checkout(
         local_dir: tempfile::tempdir()?,
     });
 
-    println!("Cloning {}:{}", dir.remote_url.url, dir.remote_url.branch);
-    exec_git(&dir, &["init"])?;
-    exec_git(&dir, &["config", "core.sparsecheckout", "true"])?;
+    println!("Cloning {}:{} into {}", dir.remote_url.url, dir.remote_url.branch, dir.path()?);
+    exec_git(&dir, &["clone", "--filter=tree:0", "--no-checkout", &dir.remote_url.url, "."])?;
+    exec_git(&dir, &["sparse-checkout", "init", "--cone"])?;
 
     let mut checkout_args = Vec::from(["sparse-checkout", "set"]);
     for path in &dir.target_files {
@@ -67,8 +67,7 @@ pub fn sparse_checkout(
     }
 
     exec_git(&dir, &checkout_args)?;
-    exec_git(&dir, &["remote", "add", "origin", &dir.remote_url.url],)?;
-    exec_git(&dir, &["pull", "origin", &dir.remote_url.branch])?;
+    exec_git(&dir, &["checkout"])?;
 
     return Ok(dir);
 }
