@@ -18,7 +18,8 @@ pub fn parse_url(url: &str) -> Result<GitUrl, GitDownError> {
 }
 
 pub fn is_shortcut_url(url: &str) -> bool {
-    let regex = Regex::new(r"^\w+:\w+*$").unwrap();
+    // FIXME: Do not rely on hardcoded forms of the shortcuts. 
+    let regex = Regex::new(r"^(bb|gh|gl|sf):.*$").unwrap();
 
     regex.is_match(url)
 }
